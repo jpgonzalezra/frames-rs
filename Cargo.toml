@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "frames-core"
+]
+default-members = [
+    "frames-core",
+]
+exclude = [
+    ".github/"
+]
+
+[profile.release]
+lto = true
+panic = "abort"
