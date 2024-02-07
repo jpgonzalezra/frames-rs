@@ -3,7 +3,7 @@ mod tests {
     use frames_core::{get_frame, Button, Frame};
 
     #[test]
-    fn it_parses_frame_correctly() {
+    fn it_parses_frame_html_correctly() {
         let html = "
             <meta name=\"fc:frame\" content=\"vNext\" />
             <meta name=\"fc:frame:image\" content=\"http://example.com/image.png\" />
@@ -19,15 +19,38 @@ mod tests {
             version: "vNext".to_string(),
             image: "http://example.com/image.png".to_string(),
             buttons: vec![
-                Button { label: "Green".to_string(), action: "post".to_string() },
-                Button { label: "Purple".to_string(), action: "post".to_string() },
-                Button { label: "Red".to_string(), action: "post".to_string() },
-                Button { label: "Blue".to_string(), action: "post".to_string() },
+                Button {
+                    index: 1,
+                    label: "Green".to_string(),
+                    action: "post".to_string(),
+                    target: None,
+                },
+                Button {
+                    index: 2,
+                    label: "Purple".to_string(),
+                    action: "post".to_string(),
+                    target: None,
+                },
+                Button {
+                    index: 3,
+                    label: "Red".to_string(),
+                    action: "post".to_string(),
+                    target: None,
+                },
+                Button {
+                    index: 4,
+                    label: "Blue".to_string(),
+                    action: "post".to_string(),
+                    target: None,
+                },
             ],
             post_url: "https://example.com".to_string(),
             input_text: "Enter a message".to_string(),
         };
 
-        assert_eq!(get_frame(html), expected_frame);
+        let (frame, errors) = validate_frame_html(html);
+
+        assert_eq!(frame.unwrap(), expected_frame);
+        assert_eq!(errors.len(), 0);
     }
 }
