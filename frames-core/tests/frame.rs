@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use frames_core::{get_frame, Button, Frame};
+    use frames_core::{validate_frame_html, Button, Frame};
 
     #[test]
     fn it_parses_frame_html_correctly() {
