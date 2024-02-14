@@ -15,7 +15,7 @@ mod tests {
             <meta name="fc:frame:input:text" content="Enter a message" />
         "#;
 
-        let expected_frame = Frame {
+        let expected_frame = &mut Frame {
             version: "vNext".to_string(),
             image: FrameImage {
                 url: "http://example.com/image.png".to_string(),

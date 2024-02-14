@@ -1,9 +1,5 @@
 use scraper::{Html, Selector};
 
-extern crate scraper;
-
-// use scraper::{ElementRef, Html, Selector};
-
 #[derive(Debug)]
 pub struct FrameErrors {
     pub errors: Vec<String>,
@@ -157,7 +153,7 @@ impl Frame {
                             if idx > 0 && idx <= 4 {
                                 let button = FrameButton {
                                     label: content.to_string(),
-                                    action: None,
+                                    action: Some("post".to_string()), //FIXME
                                     target: None,
                                 };
                                 self.buttons.push(button);
