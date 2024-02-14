@@ -1,122 +1,175 @@
+use scraper::{Html, Selector};
+
 extern crate scraper;
 
-use scraper::{ElementRef, Html, Selector};
+// use scraper::{ElementRef, Html, Selector};
+
+#[derive(Debug)]
+pub struct FrameErrors {
+    pub errors: Vec<String>,
+}
+
+impl FrameErrors {
+    fn new() -> Self {
+        FrameErrors { errors: Vec::new() }
+    }
+
+    fn add_error(&mut self, error: String) {
+        self.errors.push(error);
+    }
+
+    fn add_errors(&mut self, errors: Vec<String>) {
+        for error in errors {
+            self.errors.push(error);
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.errors.is_empty()
+    }
+}
+
+impl std::fmt::Display for FrameErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for error in &self.errors {
+            writeln!(f, "{}", error)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum AspectRatio {
+    OneToOne,
+    OnePointNineToOne,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct FrameImage {
+    pub url: String,
+    pub aspect_ratio: AspectRatio,
+}
+
+impl FrameImage {
+    fn validate(&self) -> Result<(), FrameErrors> {
+        let mut errors = FrameErrors::new();
+
+        // validate size (< 10 MB)
+        // validate image (jpg, png, gif)
+
+        // validate aspect_ratio
+        match self.aspect_ratio {
+            AspectRatio::OneToOne | AspectRatio::OnePointNineToOne => Ok(()),
+            _ => {
+                errors.add_error("Frame image ratio error".to_string());
+                Err(errors)
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct FrameButton {
+    pub label: String,
+    pub action: Option<String>,
+    pub target: Option<String>,
+}
+
+impl FrameButton {
+    fn validate(&self) -> Result<(), FrameErrors> {
+        let mut errors = FrameErrors::new();
+
+        if self.label.len() > 256 {
+            errors.add_error("Label exceeds 256 bytes".to_string());
+        }
+
+        // more validations
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Frame {
     pub version: String,
-    pub image: String,
-    pub buttons: Vec<Button>,
-    pub post_url: String,
-    pub input_text: String,
+    pub image: FrameImage,
+    pub post_url: Option<String>,
+    pub buttons: Vec<FrameButton>,
+    pub input_text: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Button {
-    pub index: usize,
-    pub label: String,
-    pub action: String,
-    pub target: Option<String>,
-}
+impl Frame {
+    pub fn new() -> Self {
+        Frame {
+            version: String::new(),
+            image: FrameImage { url: String::new(), aspect_ratio: AspectRatio::OneToOne },
+            post_url: None,
+            buttons: Vec::new(),
+            input_text: None,
+        }
+    }
 
-pub fn validate_frame_html(html_string: &str) -> (Option<Frame>, Vec<String>) {
-    let document = Html::parse_document(html_string);
-    let mut errors: Vec<String> = vec![];
+    fn validate(&self) -> Result<(), FrameErrors> {
+        let mut errors = FrameErrors::new();
 
-    let version_result =
-        get_content_from_meta(&document, "meta[property='fc:frame'], meta[name='fc:frame']");
+        match self.image.validate() {
+            Ok(_) => (),
+            Err(e) => errors.add_errors(e.errors),
+        }
 
-    // TODO: check bytes
-    let post_url_result = get_content_from_meta(
-        &document,
-        "meta[property='fc:frame:post_url'], meta[name='fc:frame:post_url']",
-    );
+        for button in &self.buttons {
+            match button.validate() {
+                Ok(_) => (),
+                Err(e) => errors.add_errors(e.errors),
+            }
+        }
 
-    // TODO: validate images
-    let image_result = get_content_from_meta(
-        &document,
-        "meta[property='fc:frame:image'], meta[name='fc:frame:image']",
-    );
+        if !errors.is_empty() {
+            return Err(errors);
+        }
 
-    // TODO: validate images
-    let input_text_result = get_content_from_meta(
-        &document,
-        "meta[property='fc:frame:input:text'], meta[name='fc:frame:input:text']",
-    );
+        Ok(())
+    }
 
-    let button_selector_result = Selector::parse(r#"meta[name^="fc:frame:button:"]"#);
+    pub fn from_html(&mut self, html: &str) -> Result<&mut Self, FrameErrors> {
+        let document = Html::parse_document(html);
+        let selector = Selector::parse("meta").unwrap();
 
-    let button_actions = match button_selector_result {
-        Ok(selector) => {
-            let mut button_actions: Vec<Button> = Vec::new();
-            for element in document.select(&selector) {
-                if let Some(button) = parse_button_element(element) {
-                    button_actions.push(button);
+        for element in document.select(&selector) {
+            if let Some(name) = element.value().attr("name") {
+                if let Some(content) = element.value().attr("content") {
+                    match name {
+                        "fc:frame" => self.version = content.to_string(),
+                        "fc:frame:image" => self.image.url = content.to_string(),
+                        "fc:frame:post_url" => self.post_url = Some(content.to_string()),
+                        "fc:frame:input:text" => self.input_text = Some(content.to_string()),
+                        name if name.starts_with("fc:frame:button:") => {
+                            let idx = name
+                                .split(":")
+                                .nth(3)
+                                .unwrap_or_default()
+                                .parse::<usize>()
+                                .unwrap_or_default();
+                            if idx > 0 && idx <= 4 {
+                                let button = FrameButton {
+                                    label: content.to_string(),
+                                    action: None,
+                                    target: None,
+                                };
+                                self.buttons.push(button);
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
-            button_actions
         }
-        Err(_) => {
-            errors.push(format!("Buttons parser error"));
-            Vec::new()
-        }
-    };
 
-    let mut collect_error = |result: Result<String, String>| -> Option<String> {
-        match result {
-            Ok(value) => Some(value),
-            Err(e) => {
-                errors.push(e);
-                None
-            }
-        }
-    };
-
-    let version = collect_error(version_result);
-    let post_url = collect_error(post_url_result);
-    let image = collect_error(image_result);
-    let input_text = collect_error(input_text_result);
-
-    let frame = if errors.is_empty() {
-        Some(Frame {
-            version: version.unwrap(),
-            image: image.unwrap(),
-            buttons: button_actions,
-            post_url: post_url.unwrap(),
-            input_text: input_text.unwrap(),
-        })
-    } else {
-        None
-    };
-
-    (frame, errors)
-}
-
-// Privates
-fn get_content_from_meta(document: &Html, selector_str: &str) -> Result<String, String> {
-    Selector::parse(selector_str)
-        .map_err(|_| format!("Selector parser error: {}", selector_str))
-        .and_then(|selector| {
-            document
-                .select(&selector)
-                .next()
-                .and_then(|e| e.value().attr("content"))
-                .map(String::from)
-                .ok_or_else(|| format!("No content found for selector: {}", selector_str))
-        })
-}
-
-fn parse_button_element(element: ElementRef) -> Option<Button> {
-    let name = element.value().attr("name")?;
-    let content = element.value().attr("content")?;
-
-    let parts: Vec<&str> = name.split(':').collect();
-    if parts.len() < 4 {
-        return None;
+        self.validate()?;
+        Ok(self)
     }
-    let index_str = parts[3];
-    let index: usize = index_str.parse().ok()?;
-
-    // FIXME: action button
-    Some(Button { index, label: content.to_string(), action: "post".to_string(), target: None })
 }
