@@ -52,6 +52,8 @@ mod tests {
         let mut frame_container = Frame::new();
         let frame = frame_container.from_html(html).unwrap();
 
+        frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
+        expected_frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
         assert_eq!(frame, expected_frame);
     }
 
@@ -62,8 +64,10 @@ mod tests {
              <meta name="fc:frame" content="vNext"/>
              <meta name="fc:frame:image" content="https://pheml.vercel.app/banner.png"/>
              <meta name="fc:frame:post_url" content="https://pheml.vercel.app/api/frame"/>
-             <meta name="fc:frame:button:1" content="Reveal my PHELM"/>
              <meta name="fc:frame:button:1:action" content="post"/>
+             <meta name="fc:frame:button:1" content="Reveal my PHELM"/>
+             <meta name="fc:frame:button:2" content="Reveal my PHELM2"/>
+             <meta name="fc:frame:button:2:action" content="post"/>
         "#;
 
         let expected_frame = &mut Frame {
@@ -73,11 +77,18 @@ mod tests {
                 url: "https://pheml.vercel.app/banner.png".to_string(),
                 aspect_ratio: AspectRatio::OneToOne,
             },
-            buttons: vec![FrameButton {
-                label: "Reveal my PHELM".to_string(),
-                action: Some("post".to_string()),
-                target: None,
-            }],
+            buttons: vec![
+                FrameButton {
+                    label: "Reveal my PHELM".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+                FrameButton {
+                    label: "Reveal my PHELM2".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+            ],
             post_url: Some("https://pheml.vercel.app/api/frame".to_string()),
             input_text: None,
         };
@@ -85,6 +96,8 @@ mod tests {
         let mut frame_container = Frame::new();
         let frame = frame_container.from_html(html).unwrap();
 
+        frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
+        expected_frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
         assert_eq!(frame, expected_frame);
     }
 }

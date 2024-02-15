@@ -164,12 +164,19 @@ impl Frame {
                                     Some(&"action") => {
                                         if let Some(button) = temp_buttons.get_mut(&idx) {
                                             button.action = Some(content.to_string());
+                                        } else {
+                                            let button = FrameButton {
+                                                label: content.to_string(),
+                                                action: Some(content.to_string()),
+                                                target: None,
+                                            };
+                                            temp_buttons.insert(idx, button);
                                         }
                                     }
                                     _ => {
                                         let button = FrameButton {
                                             label: content.to_string(),
-                                            action: None,
+                                            action: Some("post".to_string()),
                                             target: None,
                                         };
                                         temp_buttons.insert(idx, button);
