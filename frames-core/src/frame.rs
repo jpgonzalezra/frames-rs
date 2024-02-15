@@ -91,6 +91,7 @@ impl FrameButton {
 
 #[derive(Debug, PartialEq)]
 pub struct Frame {
+    pub title: String,
     pub version: String,
     pub image: FrameImage,
     pub post_url: Option<String>,
@@ -101,6 +102,7 @@ pub struct Frame {
 impl Frame {
     pub fn new() -> Self {
         Frame {
+            title: String::new(),
             version: String::new(),
             image: FrameImage { url: String::new(), aspect_ratio: AspectRatio::OneToOne },
             post_url: None,
@@ -133,8 +135,17 @@ impl Frame {
 
     pub fn from_html(&mut self, html: &str) -> Result<&mut Self, FrameErrors> {
         let document = Html::parse_document(html);
-        let selector = Selector::parse("meta").unwrap();
+        let mut errors = FrameErrors::new();
 
+        let title_selector = Selector::parse("title").unwrap();
+        if let Some(title_element) = document.select(&title_selector).next() {
+            let title_text = title_element.text().collect::<Vec<_>>().join("");
+            self.title = title_text
+        } else {
+            errors.add_error("The title is mandatory".to_string())
+        }
+
+        let selector = Selector::parse("meta").unwrap();
         for element in document.select(&selector) {
             if let Some(name) = element.value().attr("name") {
                 if let Some(content) = element.value().attr("content") {
@@ -165,7 +176,13 @@ impl Frame {
             }
         }
 
-        self.validate()?;
+        match self.validate() {
+            Ok(_) => (),
+            Err(e) => {
+                errors.add_errors(e.errors);
+                return Err(errors);
+            }
+        }
         Ok(self)
     }
 }

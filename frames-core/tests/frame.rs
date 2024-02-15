@@ -5,6 +5,7 @@ mod tests {
     #[test]
     fn it_parses_frame_html_correctly() {
         let html = r#"
+            <title>Example</title>
             <meta name="fc:frame" content="vNext" />
             <meta name="fc:frame:image" content="http://example.com/image.png" />
             <meta name="fc:frame:button:1" content="Green" />
@@ -16,6 +17,7 @@ mod tests {
         "#;
 
         let expected_frame = &mut Frame {
+            title: "Example".to_string(),
             version: "vNext".to_string(),
             image: FrameImage {
                 url: "http://example.com/image.png".to_string(),
@@ -51,5 +53,20 @@ mod tests {
         let frame = frame_container.from_html(html).unwrap();
 
         assert_eq!(frame, expected_frame);
+    }
+
+    fn it_parses_complex_frame_html_correctly() {
+        let html = r#"
+             <title>PHELMS</title>
+             <meta name="description" content="This is a PHelm, a special kind of SVG Helm generated on the fly to get a dynamic base64 meta:image on Frames."/>
+             <meta name="fc:frame" content="vNext"/>
+             <meta name="fc:frame:image" content="https://pheml.vercel.app/banner.png"/>
+             <meta name="fc:frame:post_url" content="https://pheml.vercel.app/api/frame"/>
+             <meta name="fc:frame:button:1" content="Reveal my PHELM"/>
+             <meta name="fc:frame:button:1:action" content="post"/>
+             <meta property="og:title" content="PHELMS"/>
+             <meta property="og:description" content="This is a PHelm, a special kind of SVG Helm generated on the fly to get a dynamic base64 meta:image on Frames."/>
+             <meta property="og:image" content="https://pheml.vercel.app/banner.png"/>
+        "#;
     }
 }
