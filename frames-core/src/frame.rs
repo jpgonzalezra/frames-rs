@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use scraper::{Html, Selector};
 
 #[derive(Debug)]
@@ -146,6 +148,7 @@ impl Frame {
         }
 
         let selector = Selector::parse("meta").unwrap();
+        let mut temp_buttons: HashMap<usize, FrameButton> = HashMap::new();
         for element in document.select(&selector) {
             if let Some(name) = element.value().attr("name") {
                 if let Some(content) = element.value().attr("content") {
@@ -155,19 +158,23 @@ impl Frame {
                         "fc:frame:post_url" => self.post_url = Some(content.to_string()),
                         "fc:frame:input:text" => self.input_text = Some(content.to_string()),
                         name if name.starts_with("fc:frame:button:") => {
-                            let idx = name
-                                .split(":")
-                                .nth(3)
-                                .unwrap_or_default()
-                                .parse::<usize>()
-                                .unwrap_or_default();
-                            if idx > 0 && idx <= 4 {
-                                let button = FrameButton {
-                                    label: content.to_string(),
-                                    action: Some("post".to_string()), //FIXME
-                                    target: None,
-                                };
-                                self.buttons.push(button);
+                            let parts: Vec<&str> = name.split(":").collect();
+                            if let Ok(idx) = parts[3].parse::<usize>() {
+                                match parts.get(4) {
+                                    Some(&"action") => {
+                                        if let Some(button) = temp_buttons.get_mut(&idx) {
+                                            button.action = Some(content.to_string());
+                                        }
+                                    }
+                                    _ => {
+                                        let button = FrameButton {
+                                            label: content.to_string(),
+                                            action: None,
+                                            target: None,
+                                        };
+                                        temp_buttons.insert(idx, button);
+                                    }
+                                }
                             }
                         }
                         _ => {}
@@ -175,6 +182,7 @@ impl Frame {
                 }
             }
         }
+        self.buttons.extend(temp_buttons.into_values());
 
         match self.validate() {
             Ok(_) => (),
