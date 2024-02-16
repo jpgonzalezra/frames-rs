@@ -53,7 +53,6 @@ impl FrameImage {
     fn validate(&self) -> Result<(), FrameErrors> {
         let mut errors = FrameErrors::new();
 
-        // validate size (< 10 MB)
         // validate image (jpg, png, gif)
 
         // validate image url
@@ -77,14 +76,17 @@ pub struct FrameButton {
 }
 
 impl FrameButton {
+    const VALID_ACTIONS: [&'static str; 4] = ["post_redirect", "post", "mint", "link"];
+
     fn validate(&self) -> Result<(), FrameErrors> {
         let mut errors = FrameErrors::new();
 
-        if self.label.len() > 256 {
-            errors.add_error("Label exceeds 256 bytes".to_string());
+        match &self.action {
+            Some(action) if !Self::VALID_ACTIONS.contains(&action.as_str()) => {
+                errors.add_error("Invalid button action specified".to_string());
+            }
+            _ => {}
         }
-
-        // more validations
 
         if !errors.is_empty() {
             return Err(errors);
@@ -138,7 +140,27 @@ impl Frame {
         Ok(())
     }
 
-    // pub fn from_url(&mut self, url: &str) -> Result<&mut Self, FrameErrors> {}
+    pub fn from_url(&mut self, url: &str) -> Result<&mut Self, FrameErrors> {
+        let response = reqwest::blocking::get(url);
+        match response {
+            Ok(body) => {
+                let text = body.text();
+                match text {
+                    Ok(html) => self.from_html(&html),
+                    Err(_) => {
+                        let mut errors = FrameErrors::new();
+                        errors.add_error("Failed to read response text".to_string());
+                        return Err(errors);
+                    }
+                }
+            }
+            Err(_) => {
+                let mut errors = FrameErrors::new();
+                errors.add_error("Invalid frame html".to_string());
+                return Err(errors);
+            }
+        }
+    }
 
     pub fn from_html(&mut self, html: &str) -> Result<&mut Self, FrameErrors> {
         let document = Html::parse_document(html);
