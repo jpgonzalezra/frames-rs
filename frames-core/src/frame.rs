@@ -1,28 +1,29 @@
+use scraper::{Html, Selector};
 use std::collections::HashMap;
 
-use scraper::{Html, Selector};
+use crate::URL_REGEX;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FrameErrors {
     pub errors: Vec<String>,
 }
 
 impl FrameErrors {
-    fn new() -> Self {
+    pub fn new() -> Self {
         FrameErrors { errors: Vec::new() }
     }
 
-    fn add_error(&mut self, error: String) {
+    pub fn add_error(&mut self, error: String) {
         self.errors.push(error);
     }
 
-    fn add_errors(&mut self, errors: Vec<String>) {
+    pub fn add_errors(&mut self, errors: Vec<String>) {
         for error in errors {
             self.errors.push(error);
         }
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.errors.is_empty()
     }
 }
@@ -55,14 +56,16 @@ impl FrameImage {
         // validate size (< 10 MB)
         // validate image (jpg, png, gif)
 
-        // validate aspect_ratio
-        match self.aspect_ratio {
-            AspectRatio::OneToOne | AspectRatio::OnePointNineToOne => Ok(()),
-            _ => {
-                errors.add_error("Frame image ratio error".to_string());
-                Err(errors)
-            }
+        // validate image url
+        if !URL_REGEX.is_match(&self.url) {
+            errors.add_error("Invalid URL".to_string());
         }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        // validate aspect_ratio
+        Ok(())
     }
 }
 
@@ -134,6 +137,8 @@ impl Frame {
 
         Ok(())
     }
+
+    // pub fn from_url(&mut self, url: &str) -> Result<&mut Self, FrameErrors> {}
 
     pub fn from_html(&mut self, html: &str) -> Result<&mut Self, FrameErrors> {
         let document = Html::parse_document(html);

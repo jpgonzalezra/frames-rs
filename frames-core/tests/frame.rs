@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use frames_core::{AspectRatio, Frame, FrameButton, FrameImage};
+    use frames_core::{AspectRatio, Frame, FrameButton, FrameErrors, FrameImage};
 
     #[test]
     fn it_parses_frame_html_correctly() {
@@ -99,5 +99,23 @@ mod tests {
         frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
         expected_frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
         assert_eq!(frame, expected_frame);
+    }
+
+    #[test]
+    fn it_returns_an_frame_image_error() {
+        let html = r#"
+            <title>Example</title>
+            <meta name="fc:frame" content="vNext" />
+            <meta name="fc:frame:image" content="htt://example.com/image.png" />
+            <meta name="fc:frame:post_url" content="https://example.com" />
+            <meta name="fc:frame:input:text" content="Enter a message" />
+        "#;
+
+        let mut frame_container = Frame::new();
+        let errors = frame_container.from_html(html).err().unwrap();
+
+        let mut expected_errors = FrameErrors::new();
+        expected_errors.add_error("Invalid URL".to_string());
+        assert_eq!(errors, expected_errors);
     }
 }
