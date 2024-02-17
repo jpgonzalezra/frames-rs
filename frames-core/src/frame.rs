@@ -216,7 +216,11 @@ impl Frame {
                 }
             }
         }
-        self.buttons.extend(temp_buttons.into_values());
+
+        match self.add_buttons_if_apply(temp_buttons) {
+            Ok(buttons) => self.buttons.extend(buttons),
+            Err(errs) => errors.add_errors(errs.errors),
+        };
 
         match self.validate() {
             Ok(_) => (),
@@ -225,6 +229,41 @@ impl Frame {
                 return Err(errors);
             }
         }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
         Ok(self)
+    }
+
+    fn add_buttons_if_apply(
+        &mut self,
+        temp_buttons: HashMap<usize, FrameButton>,
+    ) -> Result<Vec<FrameButton>, FrameErrors> {
+        let mut errors = FrameErrors::new();
+        let mut buttons: Vec<FrameButton> = Vec::new();
+
+        let mut indices: Vec<usize> = temp_buttons.keys().cloned().collect();
+        indices.sort();
+
+        let valid_sequence = if indices.len() == 0 || indices.len() == 1 {
+            true
+        } else {
+            indices[0] == 1 && indices.windows(2).all(|w| w[0] + 1 == w[1])
+        };
+
+        if valid_sequence {
+            buttons.extend(temp_buttons.into_values());
+        } else {
+            errors.add_error(
+                "Button indices are not in a consecutive sequence starting from 1".to_string(),
+            );
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Ok(buttons)
     }
 }

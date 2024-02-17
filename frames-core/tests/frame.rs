@@ -189,4 +189,27 @@ mod tests {
         expected_errors.add_error("Invalid button action specified".to_string());
         assert_eq!(errors, expected_errors);
     }
+
+    #[test]
+    fn it_returns_an_button_error_ii() {
+        let html = r#"
+             <title>PHELMS</title>
+             <meta name="fc:frame" content="vNext"/>
+             <meta name="fc:frame:image" content="https://pheml.vercel.app/banner.png"/>
+             <meta name="fc:frame:post_url" content="https://pheml.vercel.app/api/frame"/>
+             <meta name="fc:frame:button:1" content="Reveal my PHELM"/>
+             <meta name="fc:frame:button:1:action" content="post"/>
+             <meta name="fc:frame:button:3" content="Reveal my PHELM2"/>
+             <meta name="fc:frame:button:3:action" content="post"/>
+        "#;
+
+        let mut frame_container = Frame::new();
+        let errors = frame_container.from_html(html).err().unwrap();
+
+        let mut expected_errors = FrameErrors::new();
+        expected_errors.add_error(
+            "Button indices are not in a consecutive sequence starting from 1".to_string(),
+        );
+        assert_eq!(errors, expected_errors);
+    }
 }
