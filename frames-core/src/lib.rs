@@ -10,7 +10,9 @@ lazy_static! {
 mod frame;
 use regex::Regex;
 
-pub use crate::frame::{AspectRatio, Frame, FrameButton, FrameErrors, FrameImage};
+pub use crate::frame::{
+    AspectRatio, Error, ErrorCode, Frame, FrameButton, FrameErrors, FrameImage,
+};
 
 mod address;
 pub use crate::address::get_custody_address_by_fid;

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use frames_core::{AspectRatio, Frame, FrameButton, FrameErrors, FrameImage};
+    use frames_core::{AspectRatio, Error, ErrorCode, Frame, FrameButton, FrameErrors, FrameImage};
 
     #[test]
     fn it_parses_frame_html_correctly() {
@@ -21,25 +21,29 @@ mod tests {
             version: "vNext".to_string(),
             image: FrameImage {
                 url: "http://example.com/image.png".to_string(),
-                aspect_ratio: AspectRatio::OneToOne,
+                aspect_ratio: AspectRatio::None,
             },
             buttons: vec![
                 FrameButton {
+                    id: 1,
                     label: "Green".to_string(),
                     action: Some("post".to_string()),
                     target: None,
                 },
                 FrameButton {
+                    id: 2,
                     label: "Purple".to_string(),
                     action: Some("post".to_string()),
                     target: None,
                 },
                 FrameButton {
+                    id: 3,
                     label: "Red".to_string(),
                     action: Some("post".to_string()),
                     target: None,
                 },
                 FrameButton {
+                    id: 4,
                     label: "Blue".to_string(),
                     action: Some("post".to_string()),
                     target: None,
@@ -64,9 +68,10 @@ mod tests {
             version: "vNext".to_string(),
             image: FrameImage {
                 url: "https://pheml.vercel.app/banner.png".to_string(),
-                aspect_ratio: AspectRatio::OneToOne,
+                aspect_ratio: AspectRatio::None,
             },
             buttons: vec![FrameButton {
+                id: 1,
                 label: "Reveal my PHELM".to_string(),
                 action: Some("post".to_string()),
                 target: None,
@@ -90,7 +95,7 @@ mod tests {
     //         version: "vNext".to_string(),
     //         image: FrameImage {
     //             url: "https://pheml.vercel.app/banner.png".to_string(),
-    //             aspect_ratio: AspectRatio::OneToOne,
+    //             aspect_ratio: AspectRatio::None,
     //         },
     //         buttons: vec![FrameButton {
     //             label: "Reveal my PHELM".to_string(),
@@ -127,15 +132,17 @@ mod tests {
             version: "vNext".to_string(),
             image: FrameImage {
                 url: "https://pheml.vercel.app/banner.png".to_string(),
-                aspect_ratio: AspectRatio::OneToOne,
+                aspect_ratio: AspectRatio::None,
             },
             buttons: vec![
                 FrameButton {
+                    id: 1,
                     label: "Reveal my PHELM".to_string(),
                     action: Some("post".to_string()),
                     target: None,
                 },
                 FrameButton {
+                    id: 2,
                     label: "Reveal my PHELM2".to_string(),
                     action: Some("post".to_string()),
                     target: None,
@@ -167,7 +174,11 @@ mod tests {
         let errors = frame_container.from_html(html).err().unwrap();
 
         let mut expected_errors = FrameErrors::new();
-        expected_errors.add_error("Invalid URL".to_string());
+        expected_errors.add_error(Error {
+            description: "The URL provided is invalid.".to_string(),
+            code: ErrorCode::InvalidURL,
+            key: Some("fc:frame:image".to_string()),
+        });
         assert_eq!(errors, expected_errors);
     }
 
@@ -186,7 +197,11 @@ mod tests {
         let errors = frame_container.from_html(html).err().unwrap();
 
         let mut expected_errors = FrameErrors::new();
-        expected_errors.add_error("Invalid button action specified".to_string());
+        expected_errors.add_error(Error {
+            code: ErrorCode::InvalidButtonAction,
+            description: "Invalid button action specified".to_string(),
+            key: Some("fc:frame:button:1:action".to_string()),
+        });
         assert_eq!(errors, expected_errors);
     }
 
@@ -207,9 +222,12 @@ mod tests {
         let errors = frame_container.from_html(html).err().unwrap();
 
         let mut expected_errors = FrameErrors::new();
-        expected_errors.add_error(
-            "Button indices are not in a consecutive sequence starting from 1".to_string(),
-        );
+        expected_errors.add_error(Error {
+            description: "Button indices are not in a consecutive sequence starting from 1."
+                .to_string(),
+            code: ErrorCode::InvalidButtonSequence,
+            key: Some("fc:frame:buttons".to_string()),
+        });
         assert_eq!(errors, expected_errors);
     }
 }

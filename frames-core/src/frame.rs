@@ -4,8 +4,25 @@ use std::collections::HashMap;
 use crate::URL_REGEX;
 
 #[derive(Debug, PartialEq)]
+pub enum ErrorCode {
+    InvalidURL,
+    InvalidButtonAction,
+    FailedToReadResponse,
+    FailedToFetchFrameHTML,
+    MissingTitle,
+    InvalidButtonSequence,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Error {
+    pub description: String,
+    pub code: ErrorCode,
+    pub key: Option<String>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct FrameErrors {
-    pub errors: Vec<String>,
+    pub errors: Vec<Error>,
 }
 
 impl FrameErrors {
@@ -13,11 +30,11 @@ impl FrameErrors {
         FrameErrors { errors: Vec::new() }
     }
 
-    pub fn add_error(&mut self, error: String) {
+    pub fn add_error(&mut self, error: Error) {
         self.errors.push(error);
     }
 
-    pub fn add_errors(&mut self, errors: Vec<String>) {
+    pub fn add_errors(&mut self, errors: Vec<Error>) {
         for error in errors {
             self.errors.push(error);
         }
@@ -31,7 +48,20 @@ impl FrameErrors {
 impl std::fmt::Display for FrameErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for error in &self.errors {
-            writeln!(f, "{}", error)?;
+            writeln!(
+                f,
+                "{} - {} - {}",
+                error.key.clone().unwrap_or("".to_string()),
+                match error.code {
+                    ErrorCode::InvalidURL => "The URL provided is invalid.",
+                    ErrorCode::InvalidButtonAction => "Invalid button action specified",
+                    ErrorCode::FailedToReadResponse => "Failed to read the response text from the URL provided. This may occur due to network issues, server errors, or the response being in an unexpected format.",
+                    ErrorCode::FailedToFetchFrameHTML => "Failed to fetch frame HTML.",
+                    ErrorCode::MissingTitle => "Please ensure a <title> tag is present within the HTML metadata for proper frame functionality.",
+                    ErrorCode::InvalidButtonSequence => "Button indices are not in a consecutive sequence starting from 1."
+                },
+                error.description
+            )?;
         }
         Ok(())
     }
@@ -41,6 +71,7 @@ impl std::fmt::Display for FrameErrors {
 pub enum AspectRatio {
     OneToOne,
     OnePointNineToOne,
+    None,
 }
 
 #[derive(Debug, PartialEq)]
@@ -57,19 +88,25 @@ impl FrameImage {
 
         // validate image url
         if !URL_REGEX.is_match(&self.url) {
-            errors.add_error("Invalid URL".to_string());
+            let error = Error {
+                description: "The URL provided is invalid.".to_string(),
+                code: ErrorCode::InvalidURL,
+                key: Some("fc:frame:image".to_string()),
+            };
+            errors.add_error(error);
         }
 
         if !errors.is_empty() {
             return Err(errors);
         }
-        // validate aspect_ratio
+
         Ok(())
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FrameButton {
+    pub id: usize,
     pub label: String,
     pub action: Option<String>,
     pub target: Option<String>,
@@ -83,7 +120,12 @@ impl FrameButton {
 
         match &self.action {
             Some(action) if !Self::VALID_ACTIONS.contains(&action.as_str()) => {
-                errors.add_error("Invalid button action specified".to_string());
+                let error = Error {
+                    code: ErrorCode::InvalidButtonAction,
+                    description: "Invalid button action specified".to_string(),
+                    key: Some(format!("fc:frame:button:{}:action", self.id)),
+                };
+                errors.add_error(error);
             }
             _ => {}
         }
@@ -111,7 +153,7 @@ impl Frame {
         Frame {
             title: String::new(),
             version: String::new(),
-            image: FrameImage { url: String::new(), aspect_ratio: AspectRatio::OneToOne },
+            image: FrameImage { url: String::new(), aspect_ratio: AspectRatio::None },
             post_url: None,
             buttons: Vec::new(),
             input_text: None,
@@ -149,14 +191,25 @@ impl Frame {
                     Ok(html) => self.from_html(&html),
                     Err(_) => {
                         let mut errors = FrameErrors::new();
-                        errors.add_error("Failed to read response text".to_string());
+                        let error = Error {
+                            description: "Failed to read the response text from the URL provided. This may occur due to network issues, server errors, or the response being in an unexpected format."
+                            .to_string(),
+                            code: ErrorCode::FailedToReadResponse,
+                            key: None,
+                        };
+                        errors.add_error(error);
                         return Err(errors);
                     }
                 }
             }
             Err(_) => {
                 let mut errors = FrameErrors::new();
-                errors.add_error("Invalid frame html".to_string());
+                let error = Error {
+                    description: "Failed to fetch frame HTML.".to_string(),
+                    code: ErrorCode::FailedToFetchFrameHTML,
+                    key: None,
+                };
+                errors.add_error(error);
                 return Err(errors);
             }
         }
@@ -171,7 +224,12 @@ impl Frame {
             let title_text = title_element.text().collect::<Vec<_>>().join("");
             self.title = title_text
         } else {
-            errors.add_error("The title is mandatory".to_string())
+            let error = Error {
+                description: "Please ensure a <title> tag is present within the HTML metadata for proper frame functionality..".to_string(),
+                code: ErrorCode::MissingTitle,
+                key: None,
+            };
+            errors.add_error(error);
         }
 
         let selector = Selector::parse("meta").unwrap();
@@ -193,6 +251,7 @@ impl Frame {
                                             button.action = Some(content.to_string());
                                         } else {
                                             let button = FrameButton {
+                                                id: idx,
                                                 label: content.to_string(),
                                                 action: Some(content.to_string()),
                                                 target: None,
@@ -202,6 +261,7 @@ impl Frame {
                                     }
                                     _ => {
                                         let button = FrameButton {
+                                            id: idx,
                                             label: content.to_string(),
                                             action: Some("post".to_string()),
                                             target: None,
@@ -255,9 +315,13 @@ impl Frame {
         if valid_sequence {
             buttons.extend(temp_buttons.into_values());
         } else {
-            errors.add_error(
-                "Button indices are not in a consecutive sequence starting from 1".to_string(),
-            );
+            let error = Error {
+                description: "Button indices are not in a consecutive sequence starting from 1."
+                    .to_string(),
+                code: ErrorCode::InvalidButtonSequence,
+                key: Some("fc:frame:buttons".to_string()),
+            };
+            errors.add_error(error);
         }
 
         if !errors.is_empty() {
