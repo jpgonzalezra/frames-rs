@@ -11,6 +11,7 @@ pub enum ErrorCode {
     FailedToFetchFrameHTML,
     MissingTitle,
     InvalidButtonSequence,
+    InvalidAspectRadio,
 }
 
 #[derive(Debug, PartialEq)]
@@ -58,7 +59,8 @@ impl std::fmt::Display for FrameErrors {
                     ErrorCode::FailedToReadResponse => "Failed to read the response text from the URL provided. This may occur due to network issues, server errors, or the response being in an unexpected format.",
                     ErrorCode::FailedToFetchFrameHTML => "Failed to fetch frame HTML.",
                     ErrorCode::MissingTitle => "Please ensure a <title> tag is present within the HTML metadata for proper frame functionality.",
-                    ErrorCode::InvalidButtonSequence => "Button indices are not in a consecutive sequence starting from 1."
+                    ErrorCode::InvalidButtonSequence => "Button indices are not in a consecutive sequence starting from 1.", 
+                    ErrorCode::InvalidAspectRadio => "Invalid Aspect Radio. (Must be either 1.91:1 or 1:1)"
                 },
                 error.description
             )?;
@@ -92,6 +94,15 @@ impl FrameImage {
                 description: "The URL provided is invalid.".to_string(),
                 code: ErrorCode::InvalidURL,
                 key: Some("fc:frame:image".to_string()),
+            };
+            errors.add_error(error);
+        }
+
+        if self.aspect_ratio == AspectRatio::None {
+            let error = Error {
+                description: "Invalid image aspect ratio.".to_string(),
+                code: ErrorCode::InvalidAspectRadio,
+                key: Some("fc:frame:image:aspect_ratio".to_string()),
             };
             errors.add_error(error);
         }
@@ -236,24 +247,32 @@ impl Frame {
         let mut temp_buttons: HashMap<usize, FrameButton> = HashMap::new();
         for element in document.select(&selector) {
             if let Some(name) = element.value().attr("name") {
-                if let Some(content) = element.value().attr("content") {
+                if let Some(_content) = element.value().attr("content") {
+                    let content = _content.to_string();
                     match name {
-                        "fc:frame" => self.version = content.to_string(),
-                        "fc:frame:image" => self.image.url = content.to_string(),
-                        "fc:frame:post_url" => self.post_url = Some(content.to_string()),
-                        "fc:frame:input:text" => self.input_text = Some(content.to_string()),
+                        "fc:frame" => self.version = content,
+                        "fc:frame:image" => self.image.url = content,
+                        "fc:frame:image:aspect_ratio" => {
+                            self.image.aspect_ratio = match _content {
+                                "1.91:1" => AspectRatio::OnePointNineToOne,
+                                "1:1" => AspectRatio::OneToOne,
+                                _ => AspectRatio::None,
+                            }
+                        }
+                        "fc:frame:post_url" => self.post_url = Some(content),
+                        "fc:frame:input:text" => self.input_text = Some(content),
                         name if name.starts_with("fc:frame:button:") => {
                             let parts: Vec<&str> = name.split(":").collect();
                             if let Ok(idx) = parts[3].parse::<usize>() {
                                 match parts.get(4) {
                                     Some(&"action") => {
                                         if let Some(button) = temp_buttons.get_mut(&idx) {
-                                            button.action = Some(content.to_string());
+                                            button.action = Some(content);
                                         } else {
                                             let button = FrameButton {
                                                 id: idx,
-                                                label: content.to_string(),
-                                                action: Some(content.to_string()),
+                                                label: content.clone(),
+                                                action: Some(content),
                                                 target: None,
                                             };
                                             temp_buttons.insert(idx, button);
@@ -262,7 +281,7 @@ impl Frame {
                                     _ => {
                                         let button = FrameButton {
                                             id: idx,
-                                            label: content.to_string(),
+                                            label: content,
                                             action: Some("post".to_string()),
                                             target: None,
                                         };
