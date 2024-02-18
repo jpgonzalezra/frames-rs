@@ -7,12 +7,9 @@ lazy_static! {
         Regex::new(r"^https?://(?:www\.)?[\w.-]+\.[a-zA-Z]{2,}(?:[/\?#][^\s]*)?$").unwrap();
 }
 
-mod frame;
+pub mod address;
+pub mod types;
+
 use regex::Regex;
 
-pub use crate::frame::{
-    AspectRatio, Error, ErrorCode, Frame, FrameButton, FrameErrors, FrameImage,
-};
-
-mod address;
 pub use crate::address::get_custody_address_by_fid;

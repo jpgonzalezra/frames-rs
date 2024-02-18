@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use frames_core::{AspectRatio, Error, ErrorCode, Frame, FrameButton, FrameErrors, FrameImage};
+    use frames_core::types::button::FrameButton;
+    use frames_core::types::errors::{Error, ErrorCode, FrameErrors};
+    use frames_core::types::frame::Frame;
+    use frames_core::types::image::{AspectRatio, FrameImage};
 
     #[test]
     fn it_parses_frame_html_correctly() {

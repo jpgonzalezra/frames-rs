@@ -1,153 +1,11 @@
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 
-use crate::URL_REGEX;
-
-#[derive(Debug, PartialEq)]
-pub enum ErrorCode {
-    InvalidURL,
-    InvalidButtonAction,
-    FailedToReadResponse,
-    FailedToFetchFrameHTML,
-    MissingTitle,
-    InvalidButtonSequence,
-    InvalidAspectRadio,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Error {
-    pub description: String,
-    pub code: ErrorCode,
-    pub key: Option<String>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FrameErrors {
-    pub errors: Vec<Error>,
-}
-
-impl FrameErrors {
-    pub fn new() -> Self {
-        FrameErrors { errors: Vec::new() }
-    }
-
-    pub fn add_error(&mut self, error: Error) {
-        self.errors.push(error);
-    }
-
-    pub fn add_errors(&mut self, errors: Vec<Error>) {
-        for error in errors {
-            self.errors.push(error);
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.errors.is_empty()
-    }
-}
-
-impl std::fmt::Display for FrameErrors {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for error in &self.errors {
-            writeln!(
-                f,
-                "{} - {} - {}",
-                error.key.clone().unwrap_or("".to_string()),
-                match error.code {
-                    ErrorCode::InvalidURL => "The URL provided is invalid.",
-                    ErrorCode::InvalidButtonAction => "Invalid button action specified",
-                    ErrorCode::FailedToReadResponse => "Failed to read the response text from the URL provided. This may occur due to network issues, server errors, or the response being in an unexpected format.",
-                    ErrorCode::FailedToFetchFrameHTML => "Failed to fetch frame HTML.",
-                    ErrorCode::MissingTitle => "Please ensure a <title> tag is present within the HTML metadata for proper frame functionality.",
-                    ErrorCode::InvalidButtonSequence => "Button indices are not in a consecutive sequence starting from 1.", 
-                    ErrorCode::InvalidAspectRadio => "Invalid Aspect Radio. (Must be either 1.91:1 or 1:1)"
-                },
-                error.description
-            )?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum AspectRatio {
-    OneToOne,
-    OnePointNineToOne,
-    None,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FrameImage {
-    pub url: String,
-    pub aspect_ratio: AspectRatio,
-}
-
-impl FrameImage {
-    fn validate(&self) -> Result<(), FrameErrors> {
-        let mut errors = FrameErrors::new();
-
-        // validate image (jpg, png, gif)
-
-        // validate image url
-        if !URL_REGEX.is_match(&self.url) {
-            let error = Error {
-                description: "The URL provided is invalid.".to_string(),
-                code: ErrorCode::InvalidURL,
-                key: Some("fc:frame:image".to_string()),
-            };
-            errors.add_error(error);
-        }
-
-        if self.aspect_ratio == AspectRatio::None {
-            let error = Error {
-                description: "Invalid image aspect ratio.".to_string(),
-                code: ErrorCode::InvalidAspectRadio,
-                key: Some("fc:frame:image:aspect_ratio".to_string()),
-            };
-            errors.add_error(error);
-        }
-
-        if !errors.is_empty() {
-            return Err(errors);
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FrameButton {
-    pub id: usize,
-    pub label: String,
-    pub action: Option<String>,
-    pub target: Option<String>,
-}
-
-impl FrameButton {
-    const VALID_ACTIONS: [&'static str; 4] = ["post_redirect", "post", "mint", "link"];
-
-    fn validate(&self) -> Result<(), FrameErrors> {
-        let mut errors = FrameErrors::new();
-
-        match &self.action {
-            Some(action) if !Self::VALID_ACTIONS.contains(&action.as_str()) => {
-                let error = Error {
-                    code: ErrorCode::InvalidButtonAction,
-                    description: "Invalid button action specified".to_string(),
-                    key: Some(format!("fc:frame:button:{}:action", self.id)),
-                };
-                errors.add_error(error);
-            }
-            _ => {}
-        }
-
-        if !errors.is_empty() {
-            return Err(errors);
-        }
-
-        Ok(())
-    }
-}
+use crate::types::{
+    button::FrameButton,
+    errors::{Error, ErrorCode, FrameErrors},
+    image::{AspectRatio, FrameImage},
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Frame {
@@ -256,7 +114,7 @@ impl Frame {
                             self.image.aspect_ratio = match _content {
                                 "1.91:1" => AspectRatio::OnePointNineToOne,
                                 "1:1" => AspectRatio::OneToOne,
-                                _ => AspectRatio::None,
+                                _ => AspectRatio::Error,
                             }
                         }
                         "fc:frame:post_url" => self.post_url = Some(content),
