@@ -7,16 +7,16 @@ use ethers::{
     types::{Address, U256},
 };
 
-struct FarcasterProvider<T: Middleware + 'static> {
-    inner: T,
+pub struct FarcasterProvider<T: Middleware + 'static> {
+    pub inner: Arc<T>,
 }
 
 impl<T: Middleware + 'static> FarcasterProvider<T> {
     pub fn new(provider: T) -> Self {
-        Self { inner: provider }
+        Self { inner: Arc::new(provider) }
     }
 
-    async fn get_custody_address_by_fid(
+    pub async fn get_custody_address_by_fid(
         &self,
         fid: usize,
     ) -> Result<Option<Address>, Box<dyn std::error::Error>> {
@@ -31,7 +31,7 @@ impl<T: Middleware + 'static> FarcasterProvider<T> {
         }]"#,
         )?;
 
-        let contract = Contract::new(contract_address, contract_abi, Arc::new(self.inner));
+        let contract = Contract::new(contract_address, contract_abi, self.inner.clone());
         match contract.method::<_, Address>("custodyOf", U256::from(fid)).unwrap().call().await {
             Ok(value) => Ok(Some(value)),
             Err(e) => Err(Box::new(e)),
