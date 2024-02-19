@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use ethers::providers::{Http, Provider};
-    use frames_core::get_custody_address_by_fid;
+    use frames_core::provider::farcaster::get_custody_address_by_fid;
 
-    // #[tokio::test]
+    #[tokio::test]
     async fn it_get_custody_address_by_fid() {
         let provider = Provider::<Http>::try_from("https://mainnet.optimism.io").unwrap();
         let address = get_custody_address_by_fid(1, provider).await;
