@@ -48,7 +48,7 @@ impl Frame {
                             key: None,
                         };
                         errors.add_error(error);
-                        return Err(errors);
+                        Err(errors)
                     }
                 }
             }
@@ -60,7 +60,7 @@ impl Frame {
                     key: None,
                 };
                 errors.add_error(error);
-                return Err(errors);
+                Err(errors)
             }
         }
     }
@@ -101,7 +101,7 @@ impl Frame {
                         "fc:frame:post_url" => self.post_url = Some(content),
                         "fc:frame:input:text" => self.input_text = Some(content),
                         name if name.starts_with("fc:frame:button:") => {
-                            let parts: Vec<&str> = name.split(":").collect();
+                            let parts: Vec<&str> = name.split(':').collect();
                             if let Ok(idx) = parts[3].parse::<usize>() {
                                 match parts.get(4) {
                                     Some(&"action") => {
@@ -164,7 +164,7 @@ impl Frame {
         let mut indices: Vec<usize> = temp_buttons.keys().cloned().collect();
         indices.sort();
 
-        let valid_sequence = if indices.len() == 0 || indices.len() == 1 {
+        let valid_sequence = if indices.is_empty() || indices.len() == 1 {
             true
         } else {
             indices[0] == 1 && indices.windows(2).all(|w| w[0] + 1 == w[1])

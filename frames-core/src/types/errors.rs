@@ -41,6 +41,12 @@ impl FrameErrors {
     }
 }
 
+impl Default for FrameErrors {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl std::fmt::Display for FrameErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for error in &self.errors {
