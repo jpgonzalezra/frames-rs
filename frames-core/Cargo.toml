@@ -1,7 +1,11 @@
 [package]
 name = "frames-core"
 version = "0.1.0"
+authors = ["jpgonzalezra <jpgonzalezra@gmail.com>"]
 edition = "2021"
+description = "frames-rs is a Rust library for writing and testing Farcaster Frames"
+license = "MIT"
+repository = "https://github.com/jpgonzalezra/frames-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,7 +14,6 @@ ethers = "2.0.13"
 lazy_static = "1.4.0"
 regex = "1.5.4"
 scraper = "0.18.1"
-serde = { version = '1.0', features = ['derive'] }
 serde_json = '1.0'
 tokio = { version = "1.0", features = ["full"] }
 reqwest = { version = "0.11", features = ["blocking", "json"] }
