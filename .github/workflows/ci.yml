@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: ["stable", "beta", "nightly", "1.67"] # MSRV
+        rust: ["stable", "beta", "nightly"]
         flags: ["--no-default-features", "", "--all-features"]
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      # Only run tests on latest stable and above
       - name: build
         run: cargo build --workspace ${{ matrix.flags }}
       - name: test
