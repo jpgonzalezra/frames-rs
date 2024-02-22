@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq)]
 pub enum ErrorCode {
+    InvalidInputText,
     InvalidURL,
     InvalidButtonAction,
     FailedToReadResponse,
@@ -54,6 +55,7 @@ impl std::fmt::Display for FrameErrors {
                 f,
                 "{} - {} - {}",
                 match error.code {
+                    ErrorCode::InvalidInputText => "The input label exceeds 32 bytes.",
                     ErrorCode::InvalidURL => "The URL provided is invalid.",
                     ErrorCode::InvalidButtonAction => "Invalid button action specified",
                     ErrorCode::FailedToReadResponse => "Failed to read the response text from the URL provided. This may occur due to network issues, server errors, or the response being in an unexpected format.",
