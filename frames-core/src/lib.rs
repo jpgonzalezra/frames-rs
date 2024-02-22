@@ -10,5 +10,6 @@ lazy_static! {
 }
 
 pub mod provider;
+pub mod serializers;
 pub mod types;
 pub mod validators;

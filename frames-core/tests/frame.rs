@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use frames_core::serializers::HtmlSerializer;
     use frames_core::types::button::FrameButton;
     use frames_core::types::errors::{Error, ErrorCode, FrameErrors};
     use frames_core::types::frame::Frame;
@@ -65,6 +66,51 @@ mod tests {
     }
 
     #[test]
+    fn frame_to_html_test() {
+        let expected_frame = Frame {
+            title: "Example".to_string(),
+            version: "vNext".to_string(),
+            image: FrameImage {
+                url: "http://example.com/image.png".to_string(),
+                aspect_ratio: AspectRatio::None,
+            },
+            buttons: vec![
+                FrameButton {
+                    id: 1,
+                    label: "Green".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+                FrameButton {
+                    id: 2,
+                    label: "Purple".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+                FrameButton {
+                    id: 3,
+                    label: "Red".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+                FrameButton {
+                    id: 4,
+                    label: "Blue".to_string(),
+                    action: Some("post".to_string()),
+                    target: None,
+                },
+            ],
+            post_url: Some("https://example.com".to_string()),
+            input_text: Some("Enter a message".to_string()),
+        };
+
+        let html_result = expected_frame.to_html();
+
+        let expected_html = r#"<title>Example</title><meta name="fc:frame" content="vNext" /><meta name="fc:frame:image" content="http://example.com/image.png" /><meta name="fc:frame:input:text" content="Enter a message" /><meta name="fc:frame:button:1" content="Green" /><meta name="fc:frame:button:2" content="Purple" /><meta name="fc:frame:button:3" content="Red" /><meta name="fc:frame:button:4" content="Blue" /><meta name="fc:frame:post_url" content="https://example.com" />"#;
+        assert_eq!(html_result, expected_html);
+    }
+
+    #[test]
     fn it_parses_frame_html_from_request_correctly() {
         let expected_frame = &mut Frame {
             title: "PHELMS".to_string(),
@@ -90,32 +136,6 @@ mod tests {
         expected_frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
         assert_eq!(frame, expected_frame);
     }
-
-    // #[test]
-    // fn it_parses_complex_html_from_request_correctly() {
-    //     let expected_frame = &mut Frame {
-    //         title: "PHELMS".to_string(),
-    //         version: "vNext".to_string(),
-    //         image: FrameImage {
-    //             url: "https://pheml.vercel.app/banner.png".to_string(),
-    //             aspect_ratio: AspectRatio::None,
-    //         },
-    //         buttons: vec![FrameButton {
-    //             label: "Reveal my PHELM".to_string(),
-    //             action: Some("post".to_string()),
-    //             target: "eip155:8453:0xf5a3b6dee033ae5025e4332695931cadeb7f4d2b:1",
-    //         }],
-    //         post_url: Some("https://pheml.vercel.app/api/frame".to_string()),
-    //         input_text: None,
-    //     };
-
-    //     let mut frame_container = Frame::new();
-    //     let frame = frame_container.from_url("https://mint.farcaster.xyz").unwrap();
-
-    //     frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
-    //     expected_frame.buttons.sort_by(|a, b| a.label.cmp(&b.label));
-    //     assert_eq!(frame, expected_frame);
-    // }
 
     #[test]
     fn it_parses_frame_with_action_button_correctly() {
