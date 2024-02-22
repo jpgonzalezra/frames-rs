@@ -13,6 +13,17 @@ impl Frame {
     pub fn validate(&self) -> Result<(), FrameErrors> {
         let mut errors = FrameErrors::new();
 
+        if let Some(input_texts) = &self.input_text {
+            let byte_len = input_texts.as_bytes().len();
+            if byte_len > 32 {
+                errors.add_error(Error {
+                    code: ErrorCode::InvalidInputText,
+                    key: Some("fc:frame:input:text".to_string()),
+                    description: "The input label exceeds 32 bytes.".to_string(),
+                })
+            }
+        }
+
         match self.image.validate() {
             Ok(_) => (),
             Err(e) => errors.add_errors(e.errors),
