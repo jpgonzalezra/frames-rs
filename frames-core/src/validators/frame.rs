@@ -24,6 +24,8 @@ impl Frame {
             }
         }
 
+        // TODO: validate post url 256-byte and valid url
+
         match self.image.validate() {
             Ok(_) => (),
             Err(e) => errors.add_errors(e.errors),
